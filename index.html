@@ -47,7 +47,6 @@
             border: 3px solid #1db954;
         }
 
-        /* ตกแต่งกล่องเลือกสถานีให้จิ้มง่ายบนมือถือ */
         .station-selector {
             width: 100%;
             padding: 12px;
@@ -131,8 +130,8 @@
     <div class="station-logo" id="logo">📻</div>
 
     <select class="station-selector" id="station-select">
-        <option value="https://icecast.itvradionetwork.com/proxy/7590/;stream.mp3">📻 คลื่นวิทยุ Plathong (7590)</option>
-        <option value="https://e4hq2o44.mcot.net/FM965/fm965.stream_aac/chunklist_w679659429.m3u8">🎙️ MCOT FM 96.5 คลื่นความคิด</option>
+        <option value="https://radio11.plathong.net:7592/;stream.mp3">📻 คลื่นวิทยุ Plathong (Secure)</option>
+        <option value="https://anywhere.panyas.me/https://e4hq2o44.mcot.net/FM965/fm965.stream_aac/chunklist_w679659429.m3u8">🎙️ MCOT FM 96.5 คลื่นความคิด</option>
     </select>
 
     <div class="station-info">
@@ -151,7 +150,7 @@
     </div>
 </div>
 
-<audio id="audio-player" preload="none"></audio>
+<audio id="audio-player" preload="none" crossorigin="anonymous"></audio>
 
 <script>
     const audio = document.getElementById('audio-player');
@@ -164,6 +163,99 @@
     let isPlaying = false;
     let hls = null;
 
-    // ฟังก์ชันอัปเดตชื่อสถานีตามที่เลือก
     function updateStationName() {
-        const selectedOption
+        const selectedOption = stationSelect.options[stationSelect.selectedIndex];
+        stationName.textContent = selectedOption.text;
+    }
+
+    updateStationName();
+
+    stationSelect.addEventListener('change', () => {
+        if (isPlaying) {
+            stopRadio();
+        }
+        updateStationName();
+        statusText.textContent = "เปลี่ยนสถานีแล้ว กด PLAY เพื่อฟัง";
+    });
+
+    function playRadio() {
+        const radioUrl = stationSelect.value;
+        statusText.textContent = "กำลังเชื่อมต่อสตรีม...";
+
+        if (radioUrl.includes('.m3u8')) {
+            if (Hls.isSupported()) {
+                if (hls) hls.destroy();
+                hls = new Hls({
+                    xhrSetup: function (xhr, url) {
+                        xhr.withCredentials = false;
+                    }
+                });
+                hls.loadSource(radioUrl);
+                hls.attachMedia(audio);
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    startAudioPlayback();
+                });
+                hls.on(Hls.Events.ERROR, function(event, data) {
+                    if (data.fatal) {
+                        statusText.textContent = "ระบบสตรีมขัดข้อง กรุณาลองใหม่";
+                        console.error("HLS Error:", data);
+                    }
+                });
+            } 
+            else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
+                audio.src = radioUrl;
+                startAudioPlayback();
+            }
+        } else {
+            if (hls) {
+                hls.destroy();
+                hls = null;
+            }
+            audio.src = radioUrl;
+            audio.load();
+            startAudioPlayback();
+        }
+    }
+
+    function startAudioPlayback() {
+        audio.play()
+            .then(() => {
+                isPlaying = true;
+                playBtn.textContent = "STOP";
+                playBtn.classList.add('playing');
+                statusText.textContent = "● กำลังออกอากาศ";
+            })
+            .catch(error => {
+                console.error("Playback failed:", error);
+                statusText.textContent = "เบราว์เซอร์บล็อกเสียง หรือสตรีมไม่ตอบสนอง";
+            });
+    }
+
+    function stopRadio() {
+        audio.pause();
+        audio.src = ""; 
+        if (hls) {
+            hls.destroy();
+            hls = null;
+        }
+        isPlaying = false;
+        playBtn.textContent = "PLAY";
+        playBtn.classList.remove('playing');
+        statusText.textContent = "หยุดทำงาน";
+    }
+
+    playBtn.addEventListener('click', () => {
+        if (!isPlaying) {
+            playRadio();
+        } else {
+            stopRadio();
+        }
+    });
+
+    volumeSlider.addEventListener('input', (e) => {
+        audio.volume = e.target.value;
+    });
+</script>
+
+</body>
+</html>
