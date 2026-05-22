@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Radio Player</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #121212;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .player-container {
+            background: #1e1e1e;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .station-logo {
+            width: 150px;
+            height: 150px;
+            background: #333;
+            border-radius: 15px;
+            margin: 0 auto 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 48px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .station-info h2 {
+            font-size: 24px;
+            margin-bottom: 5px;
+            color: #1db954; /* สีเขียวสไตล์ Media Player */
+        }
+
+        .station-info p {
+            font-size: 14px;
+            color: #b3b3b3;
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .btn {
+            background: #1db954;
+            border: none;
+            color: white;
+            padding: 15px 35px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 200px;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 10px rgba(29, 185, 84, 0.3);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+            background: #1aa34a;
+        }
+
+        .btn.playing {
+            background: #e91429;
+            box-shadow: 0 4px 10px rgba(233, 20, 41, 0.3);
+        }
+
+        .volume-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: #b3b3b3;
+        }
+
+        .volume-slider {
+            width: 70%;
+            accent-color: #1db954;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="player-container">
+    <!-- ส่วนแสดงโลโก้/ไอคอนคลื่น -->
+    <div class="station-logo" id="logo">📻</div>
+
+    <!-- รายละเอียดสถานี -->
+    <div class="station-info">
+        <h2 id="station-name">Radio Online</h2>
+        <p id="station-status">กดปุ่มเพื่อเริ่มฟัง</p>
+    </div>
+
+    <!-- ปุ่มควบคุม -->
+    <div class="controls">
+        <button class="btn" id="play-btn">PLAY</button>
+    </div>
+
+    <!-- แถบปรับเสียง -->
+    <div class="volume-container">
+        <span>🔈</span>
+        <input type="range" class="volume-slider" id="volume" min="0" max="1" step="0.01" value="0.8">
+        <span>🔊</span>
+    </div>
+</div>
+
+<!-- Audio Element ซ่อนไว้ทำงานเบื้องหลัง -->
+<audio id="audio-player" preload="none"></audio>
+
+<script>
+    // ใส่ลิงก์สตรีมวิทยุตรงนี้ (ตัวอย่างเป็นคลื่นฟรีสาธารณะ หรือเปลี่ยนเป็น URL .mp3/.aac/m3u8 ของคุณ)
+    const radioUrl = "http://radio11.plathong.net:7590/;stream.mp3"; 
+    const stationNameText = "คลื่นวิทยุออนไลน์ 24 ชม.";
+
+    const audio = document.getElementById('audio-player');
+    const playBtn = document.getElementById('play-btn');
+    const volumeSlider = document.getElementById('volume');
+    const statusText = document.getElementById('station-status');
+    const stationName = document.getElementById('station-name');
+
+    stationName.textContent = stationNameText;
+
+    let isPlaying = false;
+
+    // ฟังก์ชันเปิด/ปิดเพลง
+    function togglePlay() {
+        if (!isPlaying) {
+            // โหลดสตรีมสดใหม่ทุกครั้งที่กด Play เพื่อไม่ให้เกิดอาการดีเลย์/ค้างจากบัฟเฟอร์เก่า
+            audio.src = radioUrl;
+            audio.load();
+            
+            statusText.textContent = "กำลังเชื่อมต่อสตรีม...";
+            
+            audio.play()
+                .then(() => {
+                    isPlaying = true;
+                    playBtn.textContent = "STOP";
+                    playBtn.classList.add('playing');
+                    statusText.textContent = "● กำลังออกอากาศ";
+                })
+                .catch(error => {
+                    console.error("Playback failed:", error);
+                    statusText.textContent = "ไม่สามารถโหลดคลื่นได้ กรุณาลองใหม่";
+                });
+        } else {
+            audio.pause();
+            // เคลียร์ src เพื่อหยุดการดาวน์โหลดข้อมูลสตรีมในพื้นหลัง (ประหยัดเน็ตมือถือ)
+            audio.src = ""; 
+            isPlaying = false;
+            playBtn.textContent = "PLAY";
+            playBtn.classList.remove('playing');
+            statusText.textContent = "หยุดทำงาน";
+        }
+    }
+
+    // อีเวนต์ปุ่มกด
+    playBtn.addEventListener('click', togglePlay);
+
+    // ระบบปรับเสียง
+    volumeSlider.addEventListener('input', (e) => {
+        audio.volume = e.target.value;
+    });
+</script>
+
+</body>
+</html>
