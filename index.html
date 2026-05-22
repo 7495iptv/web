@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mobile Radio Player & OneDrive</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -55,11 +56,11 @@
             text-overflow: ellipsis;
         }
 
-        /* แผงปุ่มกดแบ่งเป็น 2 คอลัมน์ จิ้มง่าย */
+        /* ปรับแผง Grid ให้รองรับ 5 สถานีให้ยังคงสวยงามและสมดุล */
         .station-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
+            gap: 12px;
             margin-bottom: 25px;
         }
 
@@ -67,8 +68,8 @@
             background: #282828;
             border: 2px solid #404040;
             color: white;
-            padding: 20px 10px;
-            font-size: 15px;
+            padding: 18px 10px;
+            font-size: 14px;
             font-weight: bold;
             border-radius: 15px;
             cursor: pointer;
@@ -79,15 +80,19 @@
             gap: 8px;
         }
 
+        /* ปรับช่องที่ 5 (Smooth 105.5) ให้ขยายกว้างเต็มแถวด้านล่างสุดเพื่อความสวยงาม */
+        .station-btn:nth-child(5) {
+            grid-column: span 2;
+        }
+
         .station-btn .icon {
-            font-size: 28px;
+            font-size: 26px;
         }
 
         .station-btn:active {
             transform: scale(0.95);
         }
 
-        /* เมื่อสถานีนั้นถูกเลือกและกำลังเล่น จะเปลี่ยนเป็นสีเขียว */
         .station-btn.active {
             background: #1db954;
             border-color: #1db954;
@@ -95,7 +100,6 @@
             box-shadow: 0 0 15px rgba(29, 185, 84, 0.4);
         }
 
-        /* ปุ่มหยุดสีแดงหลัก */
         .stop-btn {
             background: #e91429;
             border: none;
@@ -107,7 +111,7 @@
             cursor: pointer;
             width: 100%;
             margin-bottom: 25px;
-            display: none; /* จะโผล่มาเมื่อมีเพลงเล่น */
+            display: none;
             box-shadow: 0 4px 12px rgba(233, 20, 41, 0.3);
         }
 
@@ -209,6 +213,11 @@
     <div class="status-bar" id="status-text">เลือกช่องที่ต้องการฟังได้เลยครับ</div>
 
     <div class="station-grid">
+        <button class="station-btn" data-url="https://atimehd.smartclick.co.th/greenwave/hls/greenwave.m3u8" data-name="Greenwave 106.5">
+            <span class="icon">🌿</span>
+            <span>Greenwave 106.5</span>
+        </button>
+
         <button class="station-btn" data-url="http://radio11.plathong.net:7590/;stream.mp3" data-name="Chula 101.5">
             <span class="icon">🎓</span>
             <span>Chula 101.5</span>
@@ -249,7 +258,7 @@
         </a>
     </div>
 
-    <div class="version-tag">V.20260522-02</div>
+    <div class="version-tag">V.20260522-03</div>
 </div>
 
 <audio id="audio-player" preload="none" crossorigin="anonymous"></audio>
@@ -262,46 +271,73 @@
     const buttons = document.querySelectorAll('.station-btn');
     
     let currentBtn = null;
+    let hls = null; // ตัวแปรสำหรับคุมระบบถอดรหัส .m3u8
 
     buttons.forEach(button => {
         button.addEventListener('click', function() {
             const url = this.getAttribute('data-url');
             const name = this.getAttribute('data-name');
 
-            // เคลียร์ปุ่มเก่า
             if (currentBtn) {
                 currentBtn.classList.remove('active');
             }
 
-            // เลือกปุ่มปัจจุบัน
             currentBtn = this;
             currentBtn.classList.add('active');
 
             statusText.textContent = `กำลังเชื่อมต่อ ${name}...`;
             mainStopBtn.style.display = "block";
 
-            // โดดสตรีมสดใหม่ทุกครั้งเพื่อไม่ให้ดีเลย์ค้างท่อนเก่า
+            // สั่งทำความสะอาดตัวเล่นเก่าก่อนเสมอ
             audio.pause();
-            audio.src = url;
-            audio.load();
-            
-            audio.play()
-                .then(() => {
-                    statusText.textContent = `● กำลังฟัง: ${name}`;
-                })
-                .catch(error => {
-                    console.error("Error:", error);
-                    statusText.textContent = "สัญญาณขัดข้อง หรือถูกเบราว์เซอร์บล็อก";
-                });
+            if (hls) {
+                hls.destroy();
+                hls = null;
+            }
+
+            // ถ้ารหัสลิงก์เป็นไฟล์ .m3u8 (แบบ Greenwave) ให้ใช้ระบบ HLS ทะลวงช่วยเล่น
+            if (url.includes('.m3u8')) {
+                if (Hls.isSupported()) {
+                    hls = new Hls();
+                    hls.loadSource(url);
+                    hls.attachMedia(audio);
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        triggerPlay(name);
+                    });
+                } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
+                    // สำหรับระบบของค่าย Apple (Safari) ที่รองรับ m3u8 อยู่แล้วโดยตรง
+                    audio.src = url;
+                    triggerPlay(name);
+                }
+            } else {
+                // ลิงก์วิทยุแบบทั่วไป (.mp3) ให้รันแบบปกติ
+                audio.src = url;
+                audio.load();
+                triggerPlay(name);
+            }
         });
     });
 
-    // ปุ่มหยุดเล่น
+    function triggerPlay(name) {
+        audio.play()
+            .then(() => {
+                statusText.textContent = `● กำลังฟัง: ${name}`;
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                statusText.textContent = "สัญญาณขัดข้อง หรือถูกเบราว์เซอร์บล็อก";
+            });
+    }
+
     mainStopBtn.addEventListener('click', stopRadio);
 
     function stopRadio() {
         audio.pause();
         audio.src = ""; 
+        if (hls) {
+            hls.destroy();
+            hls = null;
+        }
         if (currentBtn) {
             currentBtn.classList.remove('active');
             currentBtn = null;
@@ -310,7 +346,6 @@
         statusText.textContent = "หยุดทำงาน - เลือกช่องเพื่อฟังต่อ";
     }
 
-    // ปรับเสียง
     volumeSlider.addEventListener('input', (e) => {
         audio.volume = e.target.value;
     });
