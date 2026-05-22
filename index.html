@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mobile Radio Player</title>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -26,87 +26,85 @@
         .player-container {
             background: #1e1e1e;
             width: 100%;
-            max-width: 400px;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            max-width: 450px;
+            border-radius: 25px;
+            padding: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
             text-align: center;
         }
 
-        .station-logo {
-            width: 120px;
-            height: 120px;
-            background: #333;
-            border-radius: 50%;
-            margin: 0 auto 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 48px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            border: 3px solid #1db954;
-        }
-
-        .station-selector {
-            width: 100%;
-            padding: 12px;
-            background: #282828;
-            color: #fff;
-            border: 2px solid #404040;
-            border-radius: 10px;
-            font-size: 16px;
-            margin-bottom: 20px;
-            outline: none;
-            cursor: pointer;
-        }
-
-        .station-selector:focus {
-            border-color: #1db954;
-        }
-
-        .station-info h2 {
-            font-size: 22px;
+        .main-title {
+            font-size: 24px;
+            font-weight: bold;
             margin-bottom: 5px;
             color: #1db954;
         }
 
-        .station-info p {
+        .status-bar {
             font-size: 14px;
             color: #b3b3b3;
             margin-bottom: 25px;
+            background: #282828;
+            padding: 8px 15px;
+            border-radius: 30px;
+            display: inline-block;
         }
 
-        .controls {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
+        /* ระบบ Grid สำหรับปุ่มช่องวิทยุ */
+        .station-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
             margin-bottom: 25px;
         }
 
-        .btn {
+        /* ดีไซน์ปุ่มช่องวิทยุให้ใหญ่และกดง่าย */
+        .station-btn {
+            background: #282828;
+            border: 2px solid #404040;
+            color: white;
+            padding: 20px 10px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .station-btn .icon {
+            font-size: 32px;
+        }
+
+        .station-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* สถานะเมื่อช่องนั้นกำลังเล่นอยู่ */
+        .station-btn.active {
             background: #1db954;
+            border-color: #1db954;
+            color: black;
+            box-shadow: 0 0 15px rgba(29, 185, 84, 0.4);
+        }
+
+        /* ปุ่มหยุดหลัก */
+        .stop-btn {
+            background: #e91429;
             border: none;
             color: white;
-            padding: 15px 35px;
+            padding: 15px;
             font-size: 18px;
             font-weight: bold;
             border-radius: 50px;
             cursor: pointer;
             width: 100%;
-            max-width: 200px;
-            transition: transform 0.2s, background 0.2s;
-            box-shadow: 0 4px 10px rgba(29, 185, 84, 0.3);
-        }
-
-        .btn:active {
-            transform: scale(0.95);
-            background: #1aa34a;
-        }
-
-        .btn.playing {
-            background: #e91429;
-            box-shadow: 0 4px 10px rgba(233, 20, 41, 0.3);
+            margin-bottom: 25px;
+            display: none; /* ซ่อนไว้ก่อน จะแสดงเมื่อมีเพลงเล่น */
+            box-shadow: 0 4px 12px rgba(233, 20, 41, 0.3);
         }
 
         .volume-container {
@@ -115,147 +113,13 @@
             justify-content: center;
             gap: 10px;
             color: #b3b3b3;
+            background: #282828;
+            padding: 12px;
+            border-radius: 15px;
         }
 
         .volume-slider {
-            width: 70%;
+            width: 75%;
             accent-color: #1db954;
             cursor: pointer;
         }
-    </style>
-</head>
-<body>
-
-<div class="player-container">
-    <div class="station-logo" id="logo">📻</div>
-
-    <select class="station-selector" id="station-select">
-        <option value="https://radio11.plathong.net:7592/;stream.mp3">📻 คลื่นวิทยุ Plathong (Secure)</option>
-        <option value="https://anywhere.panyas.me/https://e4hq2o44.mcot.net/FM965/fm965.stream_aac/chunklist_w679659429.m3u8">🎙️ MCOT FM 96.5 คลื่นความคิด</option>
-    </select>
-
-    <div class="station-info">
-        <h2 id="station-name">Radio Online</h2>
-        <p id="station-status">เลือกสถานีแล้วกดปุ่มเพื่อฟัง</p>
-    </div>
-
-    <div class="controls">
-        <button class="btn" id="play-btn">PLAY</button>
-    </div>
-
-    <div class="volume-container">
-        <span>🔈</span>
-        <input type="range" class="volume-slider" id="volume" min="0" max="1" step="0.01" value="0.8">
-        <span>🔊</span>
-    </div>
-</div>
-
-<audio id="audio-player" preload="none" crossorigin="anonymous"></audio>
-
-<script>
-    const audio = document.getElementById('audio-player');
-    const playBtn = document.getElementById('play-btn');
-    const volumeSlider = document.getElementById('volume');
-    const statusText = document.getElementById('station-status');
-    const stationName = document.getElementById('station-name');
-    const stationSelect = document.getElementById('station-select');
-
-    let isPlaying = false;
-    let hls = null;
-
-    function updateStationName() {
-        const selectedOption = stationSelect.options[stationSelect.selectedIndex];
-        stationName.textContent = selectedOption.text;
-    }
-
-    updateStationName();
-
-    stationSelect.addEventListener('change', () => {
-        if (isPlaying) {
-            stopRadio();
-        }
-        updateStationName();
-        statusText.textContent = "เปลี่ยนสถานีแล้ว กด PLAY เพื่อฟัง";
-    });
-
-    function playRadio() {
-        const radioUrl = stationSelect.value;
-        statusText.textContent = "กำลังเชื่อมต่อสตรีม...";
-
-        if (radioUrl.includes('.m3u8')) {
-            if (Hls.isSupported()) {
-                if (hls) hls.destroy();
-                hls = new Hls({
-                    xhrSetup: function (xhr, url) {
-                        xhr.withCredentials = false;
-                    }
-                });
-                hls.loadSource(radioUrl);
-                hls.attachMedia(audio);
-                hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                    startAudioPlayback();
-                });
-                hls.on(Hls.Events.ERROR, function(event, data) {
-                    if (data.fatal) {
-                        statusText.textContent = "ระบบสตรีมขัดข้อง กรุณาลองใหม่";
-                        console.error("HLS Error:", data);
-                    }
-                });
-            } 
-            else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
-                audio.src = radioUrl;
-                startAudioPlayback();
-            }
-        } else {
-            if (hls) {
-                hls.destroy();
-                hls = null;
-            }
-            audio.src = radioUrl;
-            audio.load();
-            startAudioPlayback();
-        }
-    }
-
-    function startAudioPlayback() {
-        audio.play()
-            .then(() => {
-                isPlaying = true;
-                playBtn.textContent = "STOP";
-                playBtn.classList.add('playing');
-                statusText.textContent = "● กำลังออกอากาศ";
-            })
-            .catch(error => {
-                console.error("Playback failed:", error);
-                statusText.textContent = "เบราว์เซอร์บล็อกเสียง หรือสตรีมไม่ตอบสนอง";
-            });
-    }
-
-    function stopRadio() {
-        audio.pause();
-        audio.src = ""; 
-        if (hls) {
-            hls.destroy();
-            hls = null;
-        }
-        isPlaying = false;
-        playBtn.textContent = "PLAY";
-        playBtn.classList.remove('playing');
-        statusText.textContent = "หยุดทำงาน";
-    }
-
-    playBtn.addEventListener('click', () => {
-        if (!isPlaying) {
-            playRadio();
-        } else {
-            stopRadio();
-        }
-    });
-
-    volumeSlider.addEventListener('input', (e) => {
-        audio.volume = e.target.value;
-    });
-</script>
-
-</body>
-</html>
