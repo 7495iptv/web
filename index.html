@@ -56,7 +56,6 @@
             text-overflow: ellipsis;
         }
 
-        /* ปรับแผง Grid ให้รองรับ 5 สถานีให้ยังคงสวยงามและสมดุล */
         .station-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -80,7 +79,6 @@
             gap: 8px;
         }
 
-        /* ปรับช่องที่ 5 (Smooth 105.5) ให้ขยายกว้างเต็มแถวด้านล่างสุดเพื่อความสวยงาม */
         .station-btn:nth-child(5) {
             grid-column: span 2;
         }
@@ -218,7 +216,7 @@
             <span>Greenwave 106.5</span>
         </button>
 
-        <button class="station-btn" data-url="http://radio11.plathong.net:7590/;stream.mp3" data-name="Chula 101.5">
+        <button class="station-btn" data-url="http://radio11.plathong.net:7590/;stream.mp3" data-ssl-url="https://cors-proxy.htmldriven.com/?url=http://radio11.plathong.net:7590/;stream.mp3" data-name="Chula 101.5">
             <span class="icon">🎓</span>
             <span>Chula 101.5</span>
         </button>
@@ -258,7 +256,7 @@
         </a>
     </div>
 
-    <div class="version-tag">V.20260522-03</div>
+    <div class="version-tag">V.20260522-04</div>
 </div>
 
 <audio id="audio-player" preload="none" crossorigin="anonymous"></audio>
@@ -271,12 +269,18 @@
     const buttons = document.querySelectorAll('.station-btn');
     
     let currentBtn = null;
-    let hls = null; // ตัวแปรสำหรับคุมระบบถอดรหัส .m3u8
+    let hls = null;
 
     buttons.forEach(button => {
         button.addEventListener('click', function() {
-            const url = this.getAttribute('data-url');
+            let url = this.getAttribute('data-url');
+            const sslUrl = this.getAttribute('data-ssl-url');
             const name = this.getAttribute('data-name');
+
+            // ตรวจจับระบบหลังบ้าน: ถ้าทำงานบนหน้าเว็บ https:// (เช่น GitHub) และมีลิงก์สำรอง ให้เปลี่ยนไปใช้ลิงก์สำรองทันที
+            if (window.location.protocol === 'https:' && sslUrl) {
+                url = sslUrl;
+            }
 
             if (currentBtn) {
                 currentBtn.classList.remove('active');
@@ -288,14 +292,12 @@
             statusText.textContent = `กำลังเชื่อมต่อ ${name}...`;
             mainStopBtn.style.display = "block";
 
-            // สั่งทำความสะอาดตัวเล่นเก่าก่อนเสมอ
             audio.pause();
             if (hls) {
                 hls.destroy();
                 hls = null;
             }
 
-            // ถ้ารหัสลิงก์เป็นไฟล์ .m3u8 (แบบ Greenwave) ให้ใช้ระบบ HLS ทะลวงช่วยเล่น
             if (url.includes('.m3u8')) {
                 if (Hls.isSupported()) {
                     hls = new Hls();
@@ -305,12 +307,10 @@
                         triggerPlay(name);
                     });
                 } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
-                    // สำหรับระบบของค่าย Apple (Safari) ที่รองรับ m3u8 อยู่แล้วโดยตรง
                     audio.src = url;
                     triggerPlay(name);
                 }
             } else {
-                // ลิงก์วิทยุแบบทั่วไป (.mp3) ให้รันแบบปกติ
                 audio.src = url;
                 audio.load();
                 triggerPlay(name);
