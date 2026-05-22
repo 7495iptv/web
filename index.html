@@ -42,6 +42,28 @@
             color: #1db954;
         }
 
+        /* ตกแต่งปุ่ม Refresh สีเหลืองเด่นชัด จิ้มง่าย */
+        .refresh-btn {
+            background: #ffb703;
+            border: none;
+            color: #000000;
+            padding: 8px 20px;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 10px rgba(255, 183, 3, 0.2);
+            transition: transform 0.2s;
+        }
+
+        .refresh-btn:active {
+            transform: scale(0.95);
+        }
+
         .status-bar {
             font-size: 14px;
             color: #b3b3b3;
@@ -208,6 +230,9 @@
 
 <div class="player-container">
     <div class="main-title">🎵 วิทยุออนไลน์มือถือ</div>
+    
+    <button class="refresh-btn" onclick="forceRefresh()">🔄 อัปเดตหน้าเว็บ (Refresh)</button>
+    
     <div class="status-bar" id="status-text">เลือกช่องที่ต้องการฟังได้เลยครับ</div>
 
     <div class="station-grid">
@@ -256,7 +281,7 @@
         </a>
     </div>
 
-    <div class="version-tag">V.20260522-04</div>
+    <div class="version-tag">V.20260522-05</div>
 </div>
 
 <audio id="audio-player" preload="none" crossorigin="anonymous"></audio>
@@ -271,13 +296,18 @@
     let currentBtn = null;
     let hls = null;
 
+    // ฟังก์ชันสั่งรีเฟรชหน้าเว็บแบบเคลียร์แคช
+    function forceRefresh() {
+        // ใช้ true บังคับเบราว์เซอร์ให้ดึงไฟล์ตรงจากเซิร์ฟเวอร์ GitHub ใหม่แทนการใช้แคชในเครื่อง
+        window.location.reload(true);
+    }
+
     buttons.forEach(button => {
         button.addEventListener('click', function() {
             let url = this.getAttribute('data-url');
             const sslUrl = this.getAttribute('data-ssl-url');
             const name = this.getAttribute('data-name');
 
-            // ตรวจจับระบบหลังบ้าน: ถ้าทำงานบนหน้าเว็บ https:// (เช่น GitHub) และมีลิงก์สำรอง ให้เปลี่ยนไปใช้ลิงก์สำรองทันที
             if (window.location.protocol === 'https:' && sslUrl) {
                 url = sslUrl;
             }
