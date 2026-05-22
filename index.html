@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mobile Radio Player</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -33,28 +34,47 @@
         }
 
         .station-logo {
-            width: 150px;
-            height: 150px;
+            width: 120px;
+            height: 120px;
             background: #333;
-            border-radius: 15px;
+            border-radius: 50%;
             margin: 0 auto 20px;
             display: flex;
             justify-content: center;
             align-items: center;
             font-size: 48px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 3px solid #1db954;
+        }
+
+        /* ตกแต่งกล่องเลือกสถานีให้จิ้มง่ายบนมือถือ */
+        .station-selector {
+            width: 100%;
+            padding: 12px;
+            background: #282828;
+            color: #fff;
+            border: 2px solid #404040;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .station-selector:focus {
+            border-color: #1db954;
         }
 
         .station-info h2 {
-            font-size: 24px;
+            font-size: 22px;
             margin-bottom: 5px;
-            color: #1db954; /* สีเขียวสไตล์ Media Player */
+            color: #1db954;
         }
 
         .station-info p {
             font-size: 14px;
             color: #b3b3b3;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
 
         .controls {
@@ -108,21 +128,22 @@
 <body>
 
 <div class="player-container">
-    <!-- ส่วนแสดงโลโก้/ไอคอนคลื่น -->
     <div class="station-logo" id="logo">📻</div>
 
-    <!-- รายละเอียดสถานี -->
+    <select class="station-selector" id="station-select">
+        <option value="https://icecast.itvradionetwork.com/proxy/7590/;stream.mp3">📻 คลื่นวิทยุ Plathong (7590)</option>
+        <option value="https://e4hq2o44.mcot.net/FM965/fm965.stream_aac/chunklist_w679659429.m3u8">🎙️ MCOT FM 96.5 คลื่นความคิด</option>
+    </select>
+
     <div class="station-info">
         <h2 id="station-name">Radio Online</h2>
-        <p id="station-status">กดปุ่มเพื่อเริ่มฟัง</p>
+        <p id="station-status">เลือกสถานีแล้วกดปุ่มเพื่อฟัง</p>
     </div>
 
-    <!-- ปุ่มควบคุม -->
     <div class="controls">
         <button class="btn" id="play-btn">PLAY</button>
     </div>
 
-    <!-- แถบปรับเสียง -->
     <div class="volume-container">
         <span>🔈</span>
         <input type="range" class="volume-slider" id="volume" min="0" max="1" step="0.01" value="0.8">
@@ -130,63 +151,19 @@
     </div>
 </div>
 
-<!-- Audio Element ซ่อนไว้ทำงานเบื้องหลัง -->
 <audio id="audio-player" preload="none"></audio>
 
 <script>
-    // ใส่ลิงก์สตรีมวิทยุตรงนี้ (ตัวอย่างเป็นคลื่นฟรีสาธารณะ หรือเปลี่ยนเป็น URL .mp3/.aac/m3u8 ของคุณ)
-    const radioUrl = "http://radio11.plathong.net:7590/;stream.mp3"; 
-    const stationNameText = "คลื่นวิทยุออนไลน์ 24 ชม.";
-
     const audio = document.getElementById('audio-player');
     const playBtn = document.getElementById('play-btn');
     const volumeSlider = document.getElementById('volume');
     const statusText = document.getElementById('station-status');
     const stationName = document.getElementById('station-name');
-
-    stationName.textContent = stationNameText;
+    const stationSelect = document.getElementById('station-select');
 
     let isPlaying = false;
+    let hls = null;
 
-    // ฟังก์ชันเปิด/ปิดเพลง
-    function togglePlay() {
-        if (!isPlaying) {
-            // โหลดสตรีมสดใหม่ทุกครั้งที่กด Play เพื่อไม่ให้เกิดอาการดีเลย์/ค้างจากบัฟเฟอร์เก่า
-            audio.src = radioUrl;
-            audio.load();
-            
-            statusText.textContent = "กำลังเชื่อมต่อสตรีม...";
-            
-            audio.play()
-                .then(() => {
-                    isPlaying = true;
-                    playBtn.textContent = "STOP";
-                    playBtn.classList.add('playing');
-                    statusText.textContent = "● กำลังออกอากาศ";
-                })
-                .catch(error => {
-                    console.error("Playback failed:", error);
-                    statusText.textContent = "ไม่สามารถโหลดคลื่นได้ กรุณาลองใหม่";
-                });
-        } else {
-            audio.pause();
-            // เคลียร์ src เพื่อหยุดการดาวน์โหลดข้อมูลสตรีมในพื้นหลัง (ประหยัดเน็ตมือถือ)
-            audio.src = ""; 
-            isPlaying = false;
-            playBtn.textContent = "PLAY";
-            playBtn.classList.remove('playing');
-            statusText.textContent = "หยุดทำงาน";
-        }
-    }
-
-    // อีเวนต์ปุ่มกด
-    playBtn.addEventListener('click', togglePlay);
-
-    // ระบบปรับเสียง
-    volumeSlider.addEventListener('input', (e) => {
-        audio.volume = e.target.value;
-    });
-</script>
-
-</body>
-</html>
+    // ฟังก์ชันอัปเดตชื่อสถานีตามที่เลือก
+    function updateStationName() {
+        const selectedOption
