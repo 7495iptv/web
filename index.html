@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <script>
-        var currentVersion = "v.20260522-05";
+        var currentVersion = "v.20260522-06";
     </script>
 
     <meta charset="UTF-8">
@@ -240,7 +240,7 @@
     <div class="version-tag-top" id="display-version">เวอร์ชันระบบ: กำลังโหลด...</div>
     <br>
 
-    <button class="refresh-btn" onclick="forceRefresh()">🔄 อัปเดตหน้าเว็บ (Refresh)</button>
+    <button class="refresh-btn" onclick="forceRefreshCacheBuster()">🔄 อัปเดตหน้าเว็บ (Refresh)</button>
     
     <div class="status-bar" id="status-text">เลือกช่องที่ต้องการฟังได้เลยครับ</div>
 
@@ -294,7 +294,6 @@
 <audio id="audio-player" preload="none" crossorigin="anonymous"></audio>
 
 <script>
-    // สั่งดึงค่าจากตัวแปรด้านบนสุด มาเขียนลงบนหน้าจออัตโนมัติ
     document.getElementById('display-version').textContent = "เวอร์ชันระบบ: " + currentVersion.toUpperCase();
 
     const audio = document.getElementById('audio-player');
@@ -306,8 +305,14 @@
     let currentBtn = null;
     let hls = null;
 
-    function forceRefresh() {
-        window.location.reload(true);
+    // ฟังก์ชันรีเฟรชระบบใหม่ ทะลวงแคชเบราว์เซอร์ 100%
+    function forceRefreshCacheBuster() {
+        // ดึงลิงก์ปัจจุบันมา แล้วตัดพารามิเตอร์เก่าออก (ถ้ามี)
+        var currentUrl = window.location.href.split('?')[0];
+        // สร้างเลขสุ่มจากเวลาปัจจุบันเพื่อไม่ให้ซ้ำกันเลยในแต่ละมิลลิวินาที
+        var uniqueTime = new Date().getTime();
+        // บังคับเปลี่ยนลิงก์หน้าเว็บโดยพ่วงท้ายด้วย ?v=เลขเวอร์ชัน&t=เลขสุ่มเวลา เพื่อหลอกเบราว์เซอร์ให้ดึงไฟล์ใหม่จาก GitHub
+        window.location.href = currentUrl + '?v=' + currentVersion + '&t=' + uniqueTime;
     }
 
     buttons.forEach(button => {
