@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mobile Radio Player</title>
+    <title>Mobile Radio Player & OneDrive</title>
     <style>
         * {
             box-sizing: border-box;
@@ -31,6 +31,7 @@
             padding: 25px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.6);
             text-align: center;
+            position: relative;
         }
 
         .main-title {
@@ -48,9 +49,13 @@
             padding: 8px 15px;
             border-radius: 30px;
             display: inline-block;
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        /* ระบบ Grid สำหรับปุ่มช่องวิทยุ */
+        /* แผงปุ่มกดแบ่งเป็น 2 คอลัมน์ จิ้มง่าย */
         .station-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -58,13 +63,12 @@
             margin-bottom: 25px;
         }
 
-        /* ดีไซน์ปุ่มช่องวิทยุให้ใหญ่และกดง่าย */
         .station-btn {
             background: #282828;
             border: 2px solid #404040;
             color: white;
             padding: 20px 10px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             border-radius: 15px;
             cursor: pointer;
@@ -72,18 +76,18 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
         .station-btn .icon {
-            font-size: 32px;
+            font-size: 28px;
         }
 
         .station-btn:active {
             transform: scale(0.95);
         }
 
-        /* สถานะเมื่อช่องนั้นกำลังเล่นอยู่ */
+        /* เมื่อสถานีนั้นถูกเลือกและกำลังเล่น จะเปลี่ยนเป็นสีเขียว */
         .station-btn.active {
             background: #1db954;
             border-color: #1db954;
@@ -91,7 +95,7 @@
             box-shadow: 0 0 15px rgba(29, 185, 84, 0.4);
         }
 
-        /* ปุ่มหยุดหลัก */
+        /* ปุ่มหยุดสีแดงหลัก */
         .stop-btn {
             background: #e91429;
             border: none;
@@ -103,7 +107,7 @@
             cursor: pointer;
             width: 100%;
             margin-bottom: 25px;
-            display: none; /* ซ่อนไว้ก่อน จะแสดงเมื่อมีเพลงเล่น */
+            display: none; /* จะโผล่มาเมื่อมีเพลงเล่น */
             box-shadow: 0 4px 12px rgba(233, 20, 41, 0.3);
         }
 
@@ -116,6 +120,7 @@
             background: #282828;
             padding: 12px;
             border-radius: 15px;
+            margin-bottom: 30px;
         }
 
         .volume-slider {
@@ -123,3 +128,193 @@
             accent-color: #1db954;
             cursor: pointer;
         }
+
+        .onedrive-section {
+            border-top: 2px dashed #404040;
+            padding-top: 25px;
+            text-align: left;
+            margin-bottom: 15px;
+        }
+
+        .onedrive-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0078d4;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .onedrive-btn {
+            background: #282828;
+            border: 2px solid #0078d4;
+            border-radius: 15px;
+            padding: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-decoration: none;
+            color: white;
+            transition: background 0.2s, transform 0.2s;
+            box-shadow: 0 4px 15px rgba(0, 120, 212, 0.15);
+        }
+
+        .onedrive-btn:active {
+            transform: scale(0.98);
+            background: #222222;
+        }
+
+        .onedrive-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .onedrive-name {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .onedrive-desc {
+            font-size: 12px;
+            color: #b3b3b3;
+        }
+
+        .onedrive-icon {
+            font-size: 22px;
+            background: #0078d4;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0, 120, 212, 0.3);
+        }
+
+        .version-tag {
+            text-align: right;
+            font-size: 11px;
+            color: #555555;
+            font-family: monospace;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="player-container">
+    <div class="main-title">🎵 วิทยุออนไลน์มือถือ</div>
+    <div class="status-bar" id="status-text">เลือกช่องที่ต้องการฟังได้เลยครับ</div>
+
+    <div class="station-grid">
+        <button class="station-btn" data-url="http://radio11.plathong.net:7590/;stream.mp3" data-name="Chula 101.5">
+            <span class="icon">🎓</span>
+            <span>Chula 101.5</span>
+        </button>
+        
+        <button class="station-btn" data-url="https://radio.mcot.net/fm965" data-name="MCOT FM 96.5">
+            <span class="icon">🎙️</span>
+            <span>FM 96.5</span>
+        </button>
+
+        <button class="station-btn" data-url="https://radio.mcot.net/fm1005" data-name="MCOT FM 100.5">
+            <span class="icon">📰</span>
+            <span>FM 100.5</span>
+        </button>
+
+        <button class="station-btn" data-url="https://becteroradio.cdn.byteark.com/smooth-audio" data-name="Smooth 105.5">
+            <span class="icon">🎷</span>
+            <span>Smooth 105.5</span>
+        </button>
+    </div>
+
+    <button class="stop-btn" id="main-stop-btn">หยุดเล่น (STOP)</button>
+
+    <div class="volume-container">
+        <span>🔈</span>
+        <input type="range" class="volume-slider" id="volume" min="0" max="1" step="0.01" value="0.8">
+        <span>🔊</span>
+    </div>
+
+    <div class="onedrive-section">
+        <div class="onedrive-title">☁️ คลังดาวน์โหลด OneDrive</div>
+        <a href="https://1drv.ms/f/c/1bfbd4d607a08bfc/IgDBzv-3ynJZSJWY9hfRRLc7AUM0NtJlePb7ie8RICf2Dto?e=ZXY86m" target="_blank" class="onedrive-btn">
+            <div class="onedrive-info">
+                <span class="onedrive-name">📂 เปิดโฟลเดอร์ดาวน์โหลดไฟล์</span>
+                <span class="onedrive-desc">รวมไฟล์เอกสารและเพลงที่แชร์ไว้</span>
+            </div>
+            <div class="onedrive-icon">🚀</div>
+        </a>
+    </div>
+
+    <div class="version-tag">V.20260522-02</div>
+</div>
+
+<audio id="audio-player" preload="none" crossorigin="anonymous"></audio>
+
+<script>
+    const audio = document.getElementById('audio-player');
+    const statusText = document.getElementById('status-text');
+    const mainStopBtn = document.getElementById('main-stop-btn');
+    const volumeSlider = document.getElementById('volume');
+    const buttons = document.querySelectorAll('.station-btn');
+    
+    let currentBtn = null;
+
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            const url = this.getAttribute('data-url');
+            const name = this.getAttribute('data-name');
+
+            // เคลียร์ปุ่มเก่า
+            if (currentBtn) {
+                currentBtn.classList.remove('active');
+            }
+
+            // เลือกปุ่มปัจจุบัน
+            currentBtn = this;
+            currentBtn.classList.add('active');
+
+            statusText.textContent = `กำลังเชื่อมต่อ ${name}...`;
+            mainStopBtn.style.display = "block";
+
+            // โดดสตรีมสดใหม่ทุกครั้งเพื่อไม่ให้ดีเลย์ค้างท่อนเก่า
+            audio.pause();
+            audio.src = url;
+            audio.load();
+            
+            audio.play()
+                .then(() => {
+                    statusText.textContent = `● กำลังฟัง: ${name}`;
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    statusText.textContent = "สัญญาณขัดข้อง หรือถูกเบราว์เซอร์บล็อก";
+                });
+        });
+    });
+
+    // ปุ่มหยุดเล่น
+    mainStopBtn.addEventListener('click', stopRadio);
+
+    function stopRadio() {
+        audio.pause();
+        audio.src = ""; 
+        if (currentBtn) {
+            currentBtn.classList.remove('active');
+            currentBtn = null;
+        }
+        mainStopBtn.style.display = "none";
+        statusText.textContent = "หยุดทำงาน - เลือกช่องเพื่อฟังต่อ";
+    }
+
+    // ปรับเสียง
+    volumeSlider.addEventListener('input', (e) => {
+        audio.volume = e.target.value;
+    });
+</script>
+
+</body>
+</html>
